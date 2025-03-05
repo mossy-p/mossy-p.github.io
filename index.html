@@ -127,8 +127,18 @@
             margin-top: 1.5rem;
             padding: 1rem;
             border-radius: 12px;
-            display: none;
-            font-size: 16px;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            min-height: 3.5rem;
+            display: block;
+            visibility: hidden;
+        }
+        
+        #result.visible {
+            opacity: 1;
+            transform: translateY(0);
+            visibility: visible;
         }
         
         .success {
@@ -156,7 +166,9 @@
             gap: 8px;
             padding: 0 16px;
             line-height: 1.5;
-            transition: min-height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
         }
 
         .letter {
@@ -174,6 +186,20 @@
 
         .letter.animate {
             animation: float 1s ease-in-out;
+        }
+
+        .letter.correct {
+            color: #2ecc71;
+        }
+
+        .letter.incorrect {
+            color: #e74c3c;
+            animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+        }
+
+        .letter.missing {
+            color: #3498db;
+            text-decoration: underline;
         }
 
         @keyframes float {
@@ -194,16 +220,39 @@
             }
         }
 
+        @keyframes shake {
+            10%, 90% {
+                transform: translateX(-1px);
+            }
+            20%, 80% {
+                transform: translateX(2px);
+            }
+            30%, 50%, 70% {
+                transform: translateX(-2px);
+            }
+            40%, 60% {
+                transform: translateX(2px);
+            }
+        }
+
         .word {
             display: inline-flex;
             gap: 2px;
             margin-right: 16px;
             white-space: nowrap;
             transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 1;
+            transform: translateY(0);
         }
 
-        .word:last-child {
-            margin-right: 0;
+        .word.fade-out {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+
+        .word.fade-in {
+            opacity: 1;
+            transform: translateY(0);
         }
 
         .original-phrase {
@@ -212,6 +261,13 @@
             flex-wrap: wrap;
             justify-content: center;
             transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .original-phrase.fade-out {
+            opacity: 0;
+            transform: translateY(-10px);
         }
 
         .original-phrase .word {
@@ -295,6 +351,92 @@
             return phraseDiv;
         }
 
+        function showIncorrectLetters(input, answer) {
+            const container = document.getElementById('animationContainer');
+            container.innerHTML = '';
+            
+            const phraseElement = createOriginalPhraseElement(input);
+            container.appendChild(phraseElement);
+
+            // Make letters visible immediately
+            const letters = phraseElement.querySelectorAll('.letter');
+            letters.forEach(letter => letter.classList.add('visible'));
+
+            // After a short delay, show incorrect letters
+            setTimeout(() => {
+                const inputLetters = input.replace(/\s/g, '').toLowerCase().split('');
+                const answerLetters = answer.replace(/[^a-zA-Z]/g, '').toLowerCase().split('');
+                
+                // Create a copy of answer letters to track which ones are used
+                const remainingAnswerLetters = [...answerLetters];
+                
+                // First pass: mark correct letters
+                letters.forEach((letter, index) => {
+                    const inputLetter = inputLetters[index];
+                    const answerIndex = remainingAnswerLetters.indexOf(inputLetter);
+                    if (answerIndex !== -1) {
+                        letter.classList.add('correct');
+                        remainingAnswerLetters.splice(answerIndex, 1);
+                    }
+                });
+
+                // Second pass: mark incorrect letters
+                letters.forEach((letter, index) => {
+                    if (!letter.classList.contains('correct')) {
+                        letter.classList.add('incorrect');
+                    }
+                });
+            }, 100);
+        }
+
+        function showMissingLetters(input, answer) {
+            const container = document.getElementById('animationContainer');
+            container.innerHTML = '';
+            
+            const phraseElement = createOriginalPhraseElement(input);
+            container.appendChild(phraseElement);
+
+            // Make letters visible immediately
+            const letters = phraseElement.querySelectorAll('.letter');
+            letters.forEach(letter => letter.classList.add('visible'));
+
+            // After a short delay, show missing letters
+            setTimeout(() => {
+                const inputLetters = input.replace(/\s/g, '').toLowerCase().split('');
+                const answerLetters = answer.replace(/[^a-zA-Z]/g, '').toLowerCase().split('');
+                
+                // Create a copy of answer letters to track which ones are used
+                const remainingAnswerLetters = [...answerLetters];
+                
+                // First pass: mark correct letters
+                letters.forEach((letter, index) => {
+                    const inputLetter = inputLetters[index];
+                    const answerIndex = remainingAnswerLetters.indexOf(inputLetter);
+                    if (answerIndex !== -1) {
+                        letter.classList.add('correct');
+                        remainingAnswerLetters.splice(answerIndex, 1);
+                    }
+                });
+
+                // Second pass: mark incorrect letters
+                letters.forEach((letter, index) => {
+                    if (!letter.classList.contains('correct')) {
+                        letter.classList.add('incorrect');
+                    }
+                });
+
+                // Add placeholder indicators for missing letters
+                if (remainingAnswerLetters.length > 0) {
+                    const missingLettersDiv = document.createElement('div');
+                    missingLettersDiv.className = 'word fade-in';
+                    missingLettersDiv.style.marginTop = '8px';
+                    missingLettersDiv.style.color = '#3498db';
+                    missingLettersDiv.textContent = `Missing ${remainingAnswerLetters.length} letter${remainingAnswerLetters.length === 1 ? '' : 's'}`;
+                    container.appendChild(missingLettersDiv);
+                }
+            }, 100);
+        }
+
         function animateLetters(input, answer) {
             const container = document.getElementById('animationContainer');
             container.innerHTML = '';
@@ -319,13 +461,14 @@
                     // After animation, rearrange letters
                     setTimeout(() => {
                         // Fade out current phrase
-                        phraseElement.style.opacity = '0';
+                        phraseElement.classList.add('fade-out');
                         
                         setTimeout(() => {
                             container.innerHTML = '';
                             const words = answer.split(' ');
                             words.forEach((word, wordIndex) => {
                                 const wordElement = createWordElement(word);
+                                wordElement.classList.add('fade-in');
                                 container.appendChild(wordElement);
                                 
                                 // Animate letters in each word
@@ -346,21 +489,45 @@
             const input = document.getElementById('clueInput').value.toUpperCase();
             const resultDiv = document.getElementById('result');
             
-            // Remove spaces and sort both strings, ignoring case and punctuation
-            const sortedInput = input.replace(/[^a-zA-Z]/g, '').toLowerCase().split('').sort().join('');
-            const sortedAnswer = correctAnswer.replace(/[^a-zA-Z]/g, '').toLowerCase().split('').sort().join('');
+            // Remove spaces and get letter counts
+            const inputLetters = input.replace(/\s/g, '').toLowerCase().split('');
+            const answerLetters = correctAnswer.replace(/[^a-zA-Z]/g, '').toLowerCase().split('');
+            
+            // Check if input has too many or too few letters
+            if (inputLetters.length < answerLetters.length) {
+                showMissingLetters(input, correctAnswer);
+                setTimeout(() => {
+                    resultDiv.textContent = `You're missing ${answerLetters.length - inputLetters.length} letter${answerLetters.length - inputLetters.length === 1 ? '' : 's'}!`;
+                    resultDiv.className = "error visible";
+                }, 1000);
+                return;
+            }
+            
+            if (inputLetters.length > answerLetters.length) {
+                showIncorrectLetters(input, correctAnswer);
+                setTimeout(() => {
+                    resultDiv.textContent = `You have ${inputLetters.length - answerLetters.length} extra letter${inputLetters.length - answerLetters.length === 1 ? '' : 's'}!`;
+                    resultDiv.className = "error visible";
+                }, 1000);
+                return;
+            }
+            
+            // If letter count matches, check if it's an anagram
+            const sortedInput = inputLetters.sort().join('');
+            const sortedAnswer = answerLetters.sort().join('');
             
             if (sortedInput === sortedAnswer) {
                 animateLetters(input, correctAnswer);
                 setTimeout(() => {
                     resultDiv.textContent = "Congratulations! Now go save her!!!";
-                    resultDiv.className = "success";
-                    resultDiv.style.display = "block";
+                    resultDiv.className = "success visible";
                 }, 2500);
             } else {
-                resultDiv.textContent = "Not quite right. Keep trying!";
-                resultDiv.className = "error";
-                resultDiv.style.display = "block";
+                showIncorrectLetters(input, correctAnswer);
+                setTimeout(() => {
+                    resultDiv.textContent = "Not quite right. Keep trying!";
+                    resultDiv.className = "error visible";
+                }, 1000);
             }
         }
 
