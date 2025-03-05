@@ -33,6 +33,41 @@
             text-align: center;
             max-width: 100%;
         }
+
+        .school-logo {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 1.5rem;
+            border-radius: 50%;
+            background: white;
+            padding: 4px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .school-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+
+        .school-logo::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: white;
+            z-index: 1;
+        }
+
+        .school-logo img {
+            position: relative;
+            z-index: 2;
+        }
         
         h1 {
             color: #2c3e50;
@@ -107,10 +142,89 @@
             color: #721c24;
             border: 1px solid #f5c6cb;
         }
+
+        .animation-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 80px;
+            margin: 1rem 0;
+            font-size: 20px;
+            font-weight: bold;
+            color: #2c3e50;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 0 16px;
+            line-height: 1.5;
+            transition: min-height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .letter {
+            display: inline-block;
+            position: relative;
+            transition: all 1s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        .letter.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .letter.animate {
+            animation: float 1s ease-in-out;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(0) rotate(0deg);
+            }
+            25% {
+                transform: translateY(-15px) rotate(5deg);
+            }
+            50% {
+                transform: translateY(0) rotate(0deg);
+            }
+            75% {
+                transform: translateY(-10px) rotate(-5deg);
+            }
+            100% {
+                transform: translateY(0) rotate(0deg);
+            }
+        }
+
+        .word {
+            display: inline-flex;
+            gap: 2px;
+            margin-right: 16px;
+            white-space: nowrap;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .word:last-child {
+            margin-right: 0;
+        }
+
+        .original-phrase {
+            display: inline-flex;
+            gap: 2px;
+            flex-wrap: wrap;
+            justify-content: center;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .original-phrase .word {
+            margin-right: 8px;
+        }
+
+        .original-phrase .word:last-child {
+            margin-right: 0;
+        }
         
         @media (min-width: 768px) {
             .container {
-                max-width: 500px;
+                max-width: 600px;
                 padding: 2rem;
             }
             
@@ -122,41 +236,132 @@
                 font-size: 16px;
                 padding: 12px 24px;
             }
+
+            .animation-container {
+                font-size: 24px;
+                min-height: 100px;
+                gap: 12px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
+        <div class="school-logo">
+            <img 
+                src="https://scontent.fbkk12-1.fna.fbcdn.net/v/t39.30808-6/300427616_581016813815372_649921892721919386_n.jpg?_nc_cat=107&ccb=1-7&_nc_sid=6ee11a&_nc_ohc=AJji2xy_rCYQ7kNvgGDYPL6&_nc_zt=23&_nc_ht=scontent.fbkk12-1.fna&_nc_gid=ArHs-TbycxmAmICIsQdblws&oh=00_AYDFimeRC1K6DnunTR3U_myGS-4amJFRsuiFh_Z4OEHySg&oe=67CDA286"
+                alt="School Logo"
+                onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgdmlld0JveD0iMCAwIDEyMCAxMjAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjEyMCIgaGVpZ2h0PSIxMjAiIGZpbGw9IiNFNUU1RTUiLz48cGF0aCBkPSJNNjAgNjBMMTAwIDEwMEgyMEw2MCA2MFoiIGZpbGw9IiM5OTk5OTkiLz48L3N2Zz4=';"
+            >
+        </div>
         <h1>Treasure Hunt Final Clue</h1>
         <p>Enter the letters you've found to solve the final clue!</p>
         <div class="input-group">
             <input type="text" id="clueInput" placeholder="Enter your letters here..." maxlength="50" autocomplete="off">
             <button onclick="checkAnagram()">Check Answer</button>
         </div>
+        <div class="animation-container" id="animationContainer"></div>
         <div id="result"></div>
     </div>
 
     <script>
-        // The correct answer - replace this with your actual final clue
-        const correctAnswer = "TREASURE";
+        // The correct answer
+        const correctAnswer = "T. Anna is eating in the canteen";
+        const originalPhrase = "A SENTIENT TAN IN EACH ANTIGEN";
+        
+        function createLetterElement(letter) {
+            const span = document.createElement('span');
+            span.textContent = letter;
+            span.className = 'letter';
+            return span;
+        }
+
+        function createWordElement(word) {
+            const wordDiv = document.createElement('div');
+            wordDiv.className = 'word';
+            word.split('').forEach(letter => {
+                wordDiv.appendChild(createLetterElement(letter));
+            });
+            return wordDiv;
+        }
+
+        function createOriginalPhraseElement(phrase) {
+            const phraseDiv = document.createElement('div');
+            phraseDiv.className = 'original-phrase';
+            phrase.split(' ').forEach(word => {
+                const wordElement = createWordElement(word);
+                phraseDiv.appendChild(wordElement);
+            });
+            return phraseDiv;
+        }
+
+        function animateLetters(input, answer) {
+            const container = document.getElementById('animationContainer');
+            container.innerHTML = '';
+            
+            // Create initial letters as a single phrase
+            const phraseElement = createOriginalPhraseElement(input);
+            container.appendChild(phraseElement);
+
+            // Make letters visible with a stagger effect
+            setTimeout(() => {
+                const letters = phraseElement.querySelectorAll('.letter');
+                letters.forEach((letter, index) => {
+                    setTimeout(() => {
+                        letter.classList.add('visible');
+                    }, index * 30);
+                });
+
+                // Start floating animation after all letters are visible
+                setTimeout(() => {
+                    letters.forEach(letter => letter.classList.add('animate'));
+
+                    // After animation, rearrange letters
+                    setTimeout(() => {
+                        // Fade out current phrase
+                        phraseElement.style.opacity = '0';
+                        
+                        setTimeout(() => {
+                            container.innerHTML = '';
+                            const words = answer.split(' ');
+                            words.forEach((word, wordIndex) => {
+                                const wordElement = createWordElement(word);
+                                container.appendChild(wordElement);
+                                
+                                // Animate letters in each word
+                                const answerLetters = wordElement.querySelectorAll('.letter');
+                                answerLetters.forEach((letter, letterIndex) => {
+                                    setTimeout(() => {
+                                        letter.classList.add('visible');
+                                    }, (wordIndex * 100) + (letterIndex * 30));
+                                });
+                            });
+                        }, 500);
+                    }, 1000);
+                }, 1500);
+            }, 100);
+        }
         
         function checkAnagram() {
             const input = document.getElementById('clueInput').value.toUpperCase();
             const resultDiv = document.getElementById('result');
             
-            // Remove spaces and sort both strings
-            const sortedInput = input.replace(/\s/g, '').split('').sort().join('');
-            const sortedAnswer = correctAnswer.replace(/\s/g, '').split('').sort().join('');
+            // Remove spaces and sort both strings, ignoring case and punctuation
+            const sortedInput = input.replace(/[^a-zA-Z]/g, '').toLowerCase().split('').sort().join('');
+            const sortedAnswer = correctAnswer.replace(/[^a-zA-Z]/g, '').toLowerCase().split('').sort().join('');
             
             if (sortedInput === sortedAnswer) {
-                resultDiv.textContent = "Congratulations! You've solved the final clue!";
-                resultDiv.className = "success";
+                animateLetters(input, correctAnswer);
+                setTimeout(() => {
+                    resultDiv.textContent = "Congratulations! You've solved the final clue!";
+                    resultDiv.className = "success";
+                    resultDiv.style.display = "block";
+                }, 2500);
             } else {
                 resultDiv.textContent = "Not quite right. Keep trying!";
                 resultDiv.className = "error";
+                resultDiv.style.display = "block";
             }
-            
-            resultDiv.style.display = "block";
         }
 
         // Add keyboard support for mobile
