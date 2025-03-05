@@ -3,11 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <title>Treasure Hunt Final Clue</title>
     <style>
         * {
             -webkit-tap-highlight-color: transparent;
             box-sizing: border-box;
+            touch-action: manipulation;
+        }
+        
+        html, body {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            overscroll-behavior: none;
+            -webkit-overflow-scrolling: none;
         }
         
         body {
@@ -351,42 +363,47 @@
             return phraseDiv;
         }
 
-        function showIncorrectLetters(input, answer) {
+        function showIncorrectLetters(input) {
             const container = document.getElementById('animationContainer');
             container.innerHTML = '';
             
-            const phraseElement = createOriginalPhraseElement(input);
-            container.appendChild(phraseElement);
-
-            // Make letters visible immediately
-            const letters = phraseElement.querySelectorAll('.letter');
-            letters.forEach(letter => letter.classList.add('visible'));
-
-            // After a short delay, show incorrect letters
-            setTimeout(() => {
-                const inputLetters = input.replace(/\s/g, '').toLowerCase().split('');
-                const answerLetters = answer.replace(/[^a-zA-Z]/g, '').toLowerCase().split('');
+            // Split input into words and create elements
+            const words = input.split(' ');
+            const phraseDiv = document.createElement('div');
+            phraseDiv.className = 'original-phrase';
+            
+            let charIndex = 0;
+            words.forEach((word, wordIndex) => {
+                const wordDiv = document.createElement('div');
+                wordDiv.className = 'word';
                 
-                // Create a copy of answer letters to track which ones are used
-                const remainingAnswerLetters = [...answerLetters];
+                // Create letter elements for each character in the word
+                word.split('').forEach(char => {
+                    const span = document.createElement('span');
+                    span.textContent = char;
+                    span.className = 'letter visible';
+                    
+                    // Compare with the character at the same position in the original phrase
+                    if (charIndex < originalPhrase.length && 
+                        char.toUpperCase() === originalPhrase[charIndex].toUpperCase()) {
+                        span.classList.add('correct');
+                    } else {
+                        span.classList.add('incorrect');
+                    }
+                    
+                    wordDiv.appendChild(span);
+                    charIndex++;
+                });
                 
-                // First pass: mark correct letters
-                letters.forEach((letter, index) => {
-                    const inputLetter = inputLetters[index];
-                    const answerIndex = remainingAnswerLetters.indexOf(inputLetter);
-                    if (answerIndex !== -1) {
-                        letter.classList.add('correct');
-                        remainingAnswerLetters.splice(answerIndex, 1);
-                    }
-                });
-
-                // Second pass: mark incorrect letters
-                letters.forEach((letter, index) => {
-                    if (!letter.classList.contains('correct')) {
-                        letter.classList.add('incorrect');
-                    }
-                });
-            }, 100);
+                phraseDiv.appendChild(wordDiv);
+                
+                // Add space to the counter if not the last word
+                if (wordIndex < words.length - 1) {
+                    charIndex++;
+                }
+            });
+            
+            container.appendChild(phraseDiv);
         }
 
         function showMissingLetters(input, answer) {
@@ -489,41 +506,37 @@
             const input = document.getElementById('clueInput').value.toUpperCase();
             const resultDiv = document.getElementById('result');
             
-            // Remove spaces and get letter counts
-            const inputLetters = input.replace(/\s/g, '').toLowerCase().split('');
-            const answerLetters = correctAnswer.replace(/[^a-zA-Z]/g, '').toLowerCase().split('');
-            
-            // Check if input has too many or too few letters
-            if (inputLetters.length < answerLetters.length) {
-                showMissingLetters(input, correctAnswer);
+            // Compare input length with original phrase length
+            if (input.length !== originalPhrase.length) {
+                showIncorrectLetters(input);
                 setTimeout(() => {
-                    resultDiv.textContent = `You're missing ${answerLetters.length - inputLetters.length} letter${answerLetters.length - inputLetters.length === 1 ? '' : 's'}!`;
+                    if (input.length < originalPhrase.length) {
+                        resultDiv.textContent = `You're missing ${originalPhrase.length - input.length} character${originalPhrase.length - input.length === 1 ? '' : 's'}!`;
+                    } else {
+                        resultDiv.textContent = `You have ${input.length - originalPhrase.length} extra character${input.length - originalPhrase.length === 1 ? '' : 's'}!`;
+                    }
                     resultDiv.className = "error visible";
                 }, 1000);
                 return;
             }
             
-            if (inputLetters.length > answerLetters.length) {
-                showIncorrectLetters(input, correctAnswer);
-                setTimeout(() => {
-                    resultDiv.textContent = `You have ${inputLetters.length - answerLetters.length} extra letter${inputLetters.length - answerLetters.length === 1 ? '' : 's'}!`;
-                    resultDiv.className = "error visible";
-                }, 1000);
-                return;
+            // Check each character against the original phrase
+            let isCorrect = true;
+            for (let i = 0; i < input.length; i++) {
+                if (input[i].toUpperCase() !== originalPhrase[i].toUpperCase()) {
+                    isCorrect = false;
+                    break;
+                }
             }
             
-            // If letter count matches, check if it's an anagram
-            const sortedInput = inputLetters.sort().join('');
-            const sortedAnswer = answerLetters.sort().join('');
-            
-            if (sortedInput === sortedAnswer) {
+            if (isCorrect) {
                 animateLetters(input, correctAnswer);
                 setTimeout(() => {
                     resultDiv.textContent = "Congratulations! Now go save her!!!";
                     resultDiv.className = "success visible";
                 }, 2500);
             } else {
-                showIncorrectLetters(input, correctAnswer);
+                showIncorrectLetters(input);
                 setTimeout(() => {
                     resultDiv.textContent = "Not quite right. Keep trying!";
                     resultDiv.className = "error visible";
