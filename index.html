@@ -503,7 +503,7 @@
         }
         
         function checkAnagram() {
-            const input = document.getElementById('clueInput').value.toUpperCase();
+            const input = document.getElementById('clueInput').value.trim().toUpperCase();
             const resultDiv = document.getElementById('result');
             
             // Compare input length with original phrase length
@@ -532,7 +532,7 @@
             if (isCorrect) {
                 animateLetters(input, correctAnswer);
                 setTimeout(() => {
-                    resultDiv.textContent = "Congratulations! Now go save her!!!";
+                    resultDiv.textContent = "Congratulations! Now go save them!!!";
                     resultDiv.className = "success visible";
                 }, 2500);
             } else {
